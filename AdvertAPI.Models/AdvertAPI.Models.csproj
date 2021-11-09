@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <Authors>Hung Bui</Authors>
+    <Company>None</Company>
+    <Product>Web Advert Microservice</Product>
+    <Description>- Learn how to implement microservice</Description>
+    <PackageProjectUrl>https://github.com/rhino-study/microservice</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/rhino-study/microservice</RepositoryUrl>
+    <PackageId>Rhino.AdvertAPI.Models</PackageId>
+  </PropertyGroup>
+
+</Project>
