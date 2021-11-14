@@ -31,6 +31,13 @@ namespace AdvertAPI
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "AdvertAPI", Version = "v1" });
             });
             services.AddHealthChecks().AddCheck<StorageHealthCheck>("Storage");
+            services.AddCors(opt =>
+            {
+                opt.AddPolicy("CorsPolicy", policy =>
+                {
+                    policy.AllowAnyMethod().AllowAnyHeader().AllowAnyOrigin();
+                });
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -47,7 +54,7 @@ namespace AdvertAPI
             app.UseHttpsRedirection();
 
             app.UseRouting();
-
+            app.UseCors("CorsPolicy");
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
