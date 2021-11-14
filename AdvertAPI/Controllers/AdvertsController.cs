@@ -60,7 +60,6 @@ namespace AdvertAPI.Controllers
         {
             try
             {
-                throw new Exception("Test view log!");
                 await _advertStorageService.Confirm(model);
                 await RaiseAdvertConfirmedMessage(model);
             }
