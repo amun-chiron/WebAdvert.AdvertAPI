@@ -4,6 +4,7 @@ using AdvertAPI.Services;
 using Amazon.SimpleNotificationService;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -16,13 +17,15 @@ namespace AdvertAPI.Controllers
     public class AdvertsController : ControllerBase
     {
         private readonly IAdvertStorageService _advertStorageService;
+        private readonly ILogger<AdvertsController> _logger;
 
         public IConfiguration Configuration { get; }
 
-        public AdvertsController(IAdvertStorageService advertStorageService, IConfiguration configuration)
+        public AdvertsController(IAdvertStorageService advertStorageService, IConfiguration configuration, ILogger<AdvertsController> logger)
         {
             _advertStorageService = advertStorageService;
             Configuration = configuration;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -42,6 +45,7 @@ namespace AdvertAPI.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "CreateAsync Method");
                 return StatusCode(500, ex.Message);
             }
 
@@ -56,15 +60,18 @@ namespace AdvertAPI.Controllers
         {
             try
             {
+                throw new Exception("Test view log!");
                 await _advertStorageService.Confirm(model);
                 await RaiseAdvertConfirmedMessage(model);
             }
             catch (KeyNotFoundException ex)
             {
+                _logger.LogError(ex, "Confirm Method");
                 return new NotFoundResult();
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Confirm Method");
                 return StatusCode(500, ex.Message);
             }
             return Ok();
