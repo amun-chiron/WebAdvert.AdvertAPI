@@ -2,54 +2,52 @@
 using AdvertAPI.Models.Messages;
 using AdvertAPI.Services;
 using Amazon.SimpleNotificationService;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace AdvertAPI.Controllers
+namespace AdvertApi.Controllers
 {
-    [Route("api/v1/[controller]")]
     [ApiController]
+    [Route("adverts/v1")]
+    [Produces("application/json")]
     public class AdvertsController : ControllerBase
     {
         private readonly IAdvertStorageService _advertStorageService;
-        private readonly ILogger<AdvertsController> _logger;
 
-        public IConfiguration Configuration { get; }
-
-        public AdvertsController(IAdvertStorageService advertStorageService, IConfiguration configuration, ILogger<AdvertsController> logger)
+        public AdvertsController(IAdvertStorageService advertStorageService, IConfiguration configuration)
         {
             _advertStorageService = advertStorageService;
             Configuration = configuration;
-            _logger = logger;
         }
+
+        public IConfiguration Configuration { get; }
 
         [HttpPost]
         [Route("Create")]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(200, Type = typeof(CreateAdvertResponse))]
-        public async Task<IActionResult> CreateAsync(AdvertModel model)
+        [ProducesResponseType(404)]
+        [ProducesResponseType(201, Type = typeof(CreateAdvertResponse))]
+        public async Task<IActionResult> Create(AdvertModel model)
         {
-            string recordId = string.Empty;
+            string recordId;
             try
             {
                 recordId = await _advertStorageService.Add(model);
             }
-            catch (KeyNotFoundException ex)
+            catch (KeyNotFoundException)
             {
-                return NotFound(ex.Message);
+                return new NotFoundResult();
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                _logger.LogError(ex, "CreateAsync Method");
-                return StatusCode(500, ex.Message);
+                return StatusCode(500, exception.Message);
             }
 
-            return Ok(new CreateAdvertResponse() { Id = recordId });
+            return StatusCode(201, new CreateAdvertResponse { Id = recordId });
         }
 
         [HttpPut]
@@ -63,17 +61,16 @@ namespace AdvertAPI.Controllers
                 await _advertStorageService.Confirm(model);
                 await RaiseAdvertConfirmedMessage(model);
             }
-            catch (KeyNotFoundException ex)
+            catch (KeyNotFoundException)
             {
-                _logger.LogError(ex, "Confirm Method");
                 return new NotFoundResult();
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                _logger.LogError(ex, "Confirm Method");
-                return StatusCode(500, ex.Message);
+                return StatusCode(500, exception.Message);
             }
-            return Ok();
+
+            return new OkResult();
         }
 
         private async Task RaiseAdvertConfirmedMessage(ConfirmAdvertModel model)
@@ -83,7 +80,7 @@ namespace AdvertAPI.Controllers
 
             using (var client = new AmazonSimpleNotificationServiceClient())
             {
-                var message = new AdvertConfirmedMessage()
+                var message = new AdvertConfirmedMessage
                 {
                     Id = model.Id,
                     Title = dbModel.Title
@@ -92,6 +89,36 @@ namespace AdvertAPI.Controllers
                 var messageJson = JsonConvert.SerializeObject(message);
                 await client.PublishAsync(topicArn, messageJson);
             }
+        }
+
+        [HttpGet]
+        [Route("{id}")]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(200)]
+        public async Task<IActionResult> Get(string id)
+        {
+            try
+            {
+                var advert = await _advertStorageService.GetById(id);
+                return new JsonResult(advert);
+            }
+            catch (KeyNotFoundException)
+            {
+                return new NotFoundResult();
+            }
+            catch (Exception)
+            {
+                return new StatusCodeResult(500);
+            }
+        }
+
+        [HttpGet]
+        [Route("all")]
+        [ProducesResponseType(200)]
+        [EnableCors("AllOrigin")]
+        public async Task<IActionResult> All()
+        {
+            return new JsonResult(await _advertStorageService.GetAllAsync());
         }
     }
 }
